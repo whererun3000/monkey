@@ -11,12 +11,18 @@ type Lexer struct {
 	offset   int
 	rdOffset int
 
+	line   int
+	column int
+
 	ch rune
 }
 
 func New(src string) *Lexer {
 	l := &Lexer{
 		src: []rune(src),
+
+		line:   1,
+		column: 1,
 	}
 
 	l.next()
@@ -26,11 +32,11 @@ func New(src string) *Lexer {
 func (l *Lexer) Next() token.Token {
 	l.skipWhitespace()
 
-	var tok token.Token
+	tok := token.Token{Pos: l.position()}
 	switch ch := l.ch; {
 	case isLetter(ch):
 		tok.Lit = l.readIdent()
-		tok.Type = token.LookupIdent(tok.Lit)
+		tok.Type = token.Lookup(tok.Lit)
 	case isDigit(ch):
 		tok.Lit = l.readInt()
 		tok.Type = token.INT
@@ -40,9 +46,39 @@ func (l *Lexer) Next() token.Token {
 		case '+':
 			tok.Lit = "+"
 			tok.Type = token.PLUS
+		case '-':
+			tok.Lit = "-"
+			tok.Type = token.MINUS
+		case '*':
+			tok.Lit = "*"
+			tok.Type = token.ASTERISK
+		case '/':
+			tok.Lit = "/"
+			tok.Type = token.SLASH
+		case '!':
+			if l.ch == '=' {
+				l.next()
+				tok.Lit = "!="
+				tok.Type = token.NEQ
+			} else {
+				tok.Lit = "!"
+				tok.Type = token.BANG
+			}
 		case '=':
-			tok.Lit = "="
-			tok.Type = token.ASSIGN
+			if l.ch == '=' {
+				l.next()
+				tok.Lit = "=="
+				tok.Type = token.EQ
+			} else {
+				tok.Lit = "="
+				tok.Type = token.ASSIGN
+			}
+		case '>':
+			tok.Lit = ">"
+			tok.Type = token.GT
+		case '<':
+			tok.Lit = "<"
+			tok.Type = token.LT
 		case ',':
 			tok.Lit = ","
 			tok.Type = token.COMMA
@@ -71,23 +107,35 @@ func (l *Lexer) Next() token.Token {
 	return tok
 }
 
-func (l *Lexer) peek() rune {
-	if l.rdOffset >= len(l.src) {
-		return 0
-	}
+func (l *Lexer) next() {
+	if l.rdOffset < len(l.src) {
+		if l.ch == '\n' {
+			l.line++
+			l.column = 0
+		}
 
-	return l.src[l.rdOffset]
+		l.ch = l.src[l.rdOffset]
+
+		l.offset = l.rdOffset
+		l.rdOffset++
+
+		l.column++
+
+	} else {
+		l.ch = 0
+
+		l.offset = len(l.src)
+		l.rdOffset = len(l.src)
+	}
 }
 
-func (l *Lexer) next() {
-	if l.rdOffset >= len(l.src) {
-		l.ch = 0
-	} else {
-		l.ch = l.src[l.rdOffset]
-	}
+func (l *Lexer) position() token.Position {
+	return token.Position{
+		Offset: l.offset,
 
-	l.offset = l.rdOffset
-	l.rdOffset++
+		Line:   l.line,
+		Column: l.column,
+	}
 }
 
 func (l *Lexer) readIdent() string {
