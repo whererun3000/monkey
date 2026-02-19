@@ -8,13 +8,13 @@ import (
 type Lexer struct {
 	src []rune
 
-	offset   int
-	rdOffset int
+	ch rune
 
 	line   int
 	column int
 
-	ch rune
+	offset   int
+	rdOffset int
 }
 
 func New(src string) *Lexer {
@@ -22,7 +22,7 @@ func New(src string) *Lexer {
 		src: []rune(src),
 
 		line:   1,
-		column: 1,
+		column: 0,
 	}
 
 	l.next()
@@ -108,24 +108,20 @@ func (l *Lexer) Next() token.Token {
 }
 
 func (l *Lexer) next() {
+	if l.ch == '\n' {
+		l.line++
+		l.column = 0
+	}
+
 	if l.rdOffset < len(l.src) {
-		if l.ch == '\n' {
-			l.line++
-			l.column = 0
-		}
-
 		l.ch = l.src[l.rdOffset]
-
 		l.offset = l.rdOffset
-		l.rdOffset++
 
 		l.column++
-
+		l.rdOffset++
 	} else {
 		l.ch = 0
-
-		l.offset = len(l.src)
-		l.rdOffset = len(l.src)
+		l.offset = l.rdOffset
 	}
 }
 

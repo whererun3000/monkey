@@ -1,8 +1,13 @@
 package token
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Type uint8
+type (
+	Prec uint8
+	Type uint8
+)
 
 const (
 	_ Type = iota
@@ -45,6 +50,11 @@ const (
 	FALSE
 	RETURN
 	FUNCTION
+)
+
+const (
+	LOWEST Prec = iota + 1
+	PREFIX
 )
 
 var tokens = [...]string{
@@ -99,6 +109,25 @@ var keywords = map[string]Type{
 	"else": ELSE,
 
 	"return": RETURN,
+}
+
+func (t Type) Prec() Prec {
+	switch t {
+	case EQ, NEQ:
+		return 2
+	case LT, GT:
+		return 3
+	case PLUS:
+		return 4
+	case ASTERISK, SLASH:
+		return 5
+	case MINUS, BANG:
+		return 6
+	case LPAREN:
+		return 7
+	default:
+		return LOWEST
+	}
 }
 
 func (t Type) String() string {
