@@ -16,7 +16,9 @@ const (
 	ILLEGAL
 
 	// Identifiers + literals
-	INT   // 1343456
+	INT // 1343456
+	STRING
+
 	IDENT // add, foobar, x, y, ...
 
 	// Operators
@@ -35,12 +37,15 @@ const (
 
 	// Delimiters
 	COMMA
+	COLON
 	SEMICOLON
 
 	LPAREN
 	RPAREN
 	LBRACE
 	RBRACE
+	LBRACKET
+	RBRACKET
 
 	// Keywords
 	IF
@@ -62,7 +67,9 @@ var tokens = [...]string{
 	ILLEGAL: "ILLEGAL",
 
 	// Identifiers + literals
-	INT:   "INT",   // 1343456
+	INT:    "INT", // 1343456
+	STRING: "STRING",
+
 	IDENT: "IDENT", // add, foobar, x, y, ...
 
 	// Operators
@@ -81,12 +88,15 @@ var tokens = [...]string{
 
 	// Delimiters
 	COMMA:     ",",
+	COLON:     ":",
 	SEMICOLON: ";",
 
-	LPAREN: "(",
-	RPAREN: ")",
-	LBRACE: "{",
-	RBRACE: "}",
+	LPAREN:   "(",
+	RPAREN:   ")",
+	LBRACE:   "{",
+	RBRACE:   "}",
+	LBRACKET: "[",
+	RBRACKET: "]",
 
 	// Keywords
 	IF:       "IF",
@@ -125,6 +135,8 @@ func (t Type) Prec() Prec {
 		return 6
 	case LPAREN:
 		return 7
+	case LBRACKET:
+		return 8
 	default:
 		return LOWEST
 	}

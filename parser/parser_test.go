@@ -2,6 +2,8 @@ package parser
 
 import (
 	"testing"
+
+	"github.com/whererun3000/monkey/lexer"
 )
 
 func TestParseProgram(t *testing.T) {
@@ -80,13 +82,38 @@ func TestParseProgram(t *testing.T) {
 			input:  "fn(x, y) { x + y; }",
 			output: "fn(x, y) { (x + y); };",
 		},
+		{
+			name:   "StringLit",
+			input:  `"hello world"`,
+			output: `"hello world";`,
+		},
+		{
+			name:   "ArrayLit",
+			input:  `[1, 2 * 2, 3 + 3, "hello"]`,
+			output: `[1, (2 * 2), (3 + 3), "hello"];`,
+		},
+		{
+			name:   "IndexExpr",
+			input:  "myArray[1 + 1]",
+			output: "(myArray[(1 + 1)]);",
+		},
+		{
+			name:   "HashLit",
+			input:  `{"one":1, "two":2, "three":3}`,
+			output: `{"one":1, "two":2, "three":3};`,
+		},
+		{
+			name:   "empty HashLit",
+			input:  "{}",
+			output: "{};",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := new(parser)
-			p.init(tt.input)
+			l := lexer.New(tt.input)
+			p := New(l)
 
-			got := ParseProgram(tt.input)
+			got := p.Parse()
 			if errors := p.errors; len(errors) > 0 {
 				t.Errorf("parser has %d errors", len(errors))
 				for _, msg := range errors {

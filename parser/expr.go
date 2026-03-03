@@ -7,14 +7,14 @@ import (
 	"github.com/whererun3000/monkey/token"
 )
 
-func (p *parser) parseIdent() ast.Expr {
+func (p *Parser) parseIdent() ast.Expr {
 	return &ast.Ident{
 		Tok:   p.tok,
 		Value: p.tok.Lit,
 	}
 }
 
-func (p *parser) parseIntLit() ast.Expr {
+func (p *Parser) parseIntLit() ast.Expr {
 	value, err := strconv.ParseInt(p.tok.Lit, 10, 64)
 	if err != nil {
 		p.errorf("could not parse %q as integer", p.tok.Lit)
@@ -29,7 +29,7 @@ func (p *parser) parseIntLit() ast.Expr {
 	return lit
 }
 
-func (p *parser) parseBoolLit() ast.Expr {
+func (p *Parser) parseBoolLit() ast.Expr {
 	value, err := strconv.ParseBool(p.tok.Lit)
 	if err != nil {
 		p.errorf("could not parse %q as bool", p.tok.Lit)
@@ -44,7 +44,75 @@ func (p *parser) parseBoolLit() ast.Expr {
 	return lit
 }
 
-func (p *parser) parseFuncLit() ast.Expr {
+func (p *Parser) parseStringLit() ast.Expr {
+	return &ast.StringLit{
+		Tok:   p.tok,
+		Value: p.tok.Lit,
+	}
+}
+
+func (p *Parser) parseArrayLit() ast.Expr {
+	arr := &ast.ArrayLit{
+		Tok:   p.tok,
+		Elems: p.parseArrayElems(),
+	}
+
+	return arr
+}
+
+func (p *Parser) parseArrayElems() []ast.Expr {
+	p.next()
+	if p.tok.Is(token.RBRACKET) {
+		return nil
+	}
+
+	elems := []ast.Expr{p.parseExpr(token.LOWEST)}
+	for p.rdTok.Is(token.COMMA) {
+		p.next()
+		p.next()
+
+		elems = append(elems, p.parseExpr(token.LOWEST))
+	}
+
+	if !p.expect(token.RBRACKET) {
+		return nil
+	}
+
+	return elems
+}
+
+func (p *Parser) parseHashLit() ast.Expr {
+	hash := &ast.HashLit{
+		Tok:   p.tok,
+		Pairs: make(map[ast.Expr]ast.Expr),
+	}
+
+	for !p.rdTok.Is(token.RBRACE) {
+		p.next()
+		key := p.parseExpr(token.LOWEST)
+
+		if !p.expect(token.COLON) {
+			return nil
+		}
+
+		p.next()
+		value := p.parseExpr(token.LOWEST)
+
+		hash.Pairs[key] = value
+
+		if !p.rdTok.Is(token.RBRACE) && !p.expect(token.COMMA) {
+			return nil
+		}
+	}
+
+	if !p.expect(token.RBRACE) {
+		return nil
+	}
+
+	return hash
+}
+
+func (p *Parser) parseFuncLit() ast.Expr {
 	lit := &ast.FuncLit{
 		Tok: p.tok,
 	}
@@ -64,7 +132,7 @@ func (p *parser) parseFuncLit() ast.Expr {
 	return lit
 }
 
-func (p *parser) parseFuncParams() []*ast.Ident {
+func (p *Parser) parseFuncParams() []*ast.Ident {
 	p.next()
 
 	if p.tok.Is(token.RPAREN) {
@@ -95,7 +163,7 @@ func (p *parser) parseFuncParams() []*ast.Ident {
 	return idents
 }
 
-func (p *parser) parseGroupExpr() ast.Expr {
+func (p *Parser) parseGroupExpr() ast.Expr {
 	p.next()
 
 	x := p.parseExpr(token.LOWEST)
@@ -107,7 +175,7 @@ func (p *parser) parseGroupExpr() ast.Expr {
 	return x
 }
 
-func (p *parser) parseIfExpr() ast.Expr {
+func (p *Parser) parseIfExpr() ast.Expr {
 	expr := &ast.IfExpr{
 		Tok: p.tok,
 	}
@@ -142,7 +210,7 @@ func (p *parser) parseIfExpr() ast.Expr {
 	return expr
 }
 
-func (p *parser) parseCallExpr(fn ast.Expr) ast.Expr {
+func (p *Parser) parseCallExpr(fn ast.Expr) ast.Expr {
 	expr := &ast.CallExpr{
 		Tok: p.tok,
 
@@ -153,7 +221,7 @@ func (p *parser) parseCallExpr(fn ast.Expr) ast.Expr {
 	return expr
 }
 
-func (p *parser) parseCallArgs() []ast.Expr {
+func (p *Parser) parseCallArgs() []ast.Expr {
 	if p.next(); p.tok.Is(token.RPAREN) {
 		return nil
 	}
@@ -175,7 +243,7 @@ func (p *parser) parseCallArgs() []ast.Expr {
 	return args
 }
 
-func (p *parser) parseExpr(prec token.Prec) ast.Expr {
+func (p *Parser) parseExpr(prec token.Prec) ast.Expr {
 	prefix := p.prefixParseFns[p.tok.Type]
 	if prefix == nil {
 		p.errorf("no prefix parse function for %s found", p.tok.Type)
@@ -198,19 +266,37 @@ func (p *parser) parseExpr(prec token.Prec) ast.Expr {
 	return x
 }
 
-func (p *parser) parsePrefixExpr() ast.Expr {
-	expr := &ast.PrefixExpr{
-		Op: p.tok,
+func (p *Parser) parseIndexExpr(x ast.Expr) ast.Expr {
+	expr := &ast.IndexExpr{
+		Tok: p.tok,
+
+		X: x,
 	}
 
 	p.next()
+	expr.I = p.parseExpr(token.LOWEST)
 
-	expr.X = p.parseExpr(p.tok.Prec())
+	if !p.expect(token.RBRACKET) {
+		return nil
+	}
 
 	return expr
 }
 
-func (p *parser) parseInfixExpr(x ast.Expr) ast.Expr {
+func (p *Parser) parsePrefixExpr() ast.Expr {
+	expr := &ast.PrefixExpr{
+		Op: p.tok,
+	}
+
+	prec := p.tok.Prec()
+	p.next()
+
+	expr.X = p.parseExpr(prec)
+
+	return expr
+}
+
+func (p *Parser) parseInfixExpr(x ast.Expr) ast.Expr {
 	expr := &ast.InfixExpr{
 		Op: p.tok,
 

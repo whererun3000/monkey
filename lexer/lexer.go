@@ -85,6 +85,9 @@ func (l *Lexer) Next() token.Token {
 		case ';':
 			tok.Lit = ";"
 			tok.Type = token.SEMICOLON
+		case ':':
+			tok.Lit = ":"
+			tok.Type = token.COLON
 		case '(':
 			tok.Lit = "("
 			tok.Type = token.LPAREN
@@ -97,6 +100,15 @@ func (l *Lexer) Next() token.Token {
 		case '}':
 			tok.Lit = "}"
 			tok.Type = token.RBRACE
+		case '[':
+			tok.Lit = "["
+			tok.Type = token.LBRACKET
+		case ']':
+			tok.Lit = "]"
+			tok.Type = token.RBRACKET
+		case '"':
+			tok.Lit = l.readString()
+			tok.Type = token.STRING
 		case 0:
 			tok.Type = token.EOF
 		default:
@@ -150,6 +162,21 @@ func (l *Lexer) readInt() string {
 	}
 
 	return string(l.src[offset:l.offset])
+}
+
+func (l *Lexer) readString() string {
+	offset := l.offset
+	for l.ch != '"' && l.ch != 0 {
+		l.next()
+	}
+
+	s := string(l.src[offset:l.offset])
+
+	if l.ch == '"' {
+		l.next()
+	}
+
+	return s
 }
 
 func (l *Lexer) skipWhitespace() {

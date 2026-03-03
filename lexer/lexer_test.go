@@ -27,6 +27,8 @@ func TestNextToken(t *testing.T) {
 
 		10 == 10;
 		10 != 9;
+		"foobar";
+		{"foo": "bar"};
 	`
 
 	tests := []struct {
@@ -105,6 +107,8 @@ func TestNextToken(t *testing.T) {
 		{expect: token.Token{Pos: token.Position{Offset: 210, Line: 20, Column: 6}, Lit: "!=", Type: token.NEQ}},
 		{expect: token.Token{Pos: token.Position{Offset: 213, Line: 20, Column: 9}, Lit: "9", Type: token.INT}},
 		{expect: token.Token{Pos: token.Position{Offset: 214, Line: 20, Column: 10}, Lit: ";", Type: token.SEMICOLON}},
+		{expect: token.Token{Pos: token.Position{Offset: 218, Line: 21, Column: 3}, Lit: "foobar", Type: token.STRING}},
+		{expect: token.Token{Pos: token.Position{Offset: 226, Line: 21, Column: 11}, Lit: ";", Type: token.SEMICOLON}},
 		// {expect: token.Token{Pos: token.Position{Offset: 216, Line: 21, Column: 2}, Type: token.EOF}},
 	}
 

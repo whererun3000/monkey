@@ -5,7 +5,7 @@ import (
 	"github.com/whererun3000/monkey/token"
 )
 
-func (p *parser) parseStmt() ast.Stmt {
+func (p *Parser) parseStmt() ast.Stmt {
 	switch p.tok.Type {
 	case token.LET:
 		return p.parseLetStmt()
@@ -16,7 +16,7 @@ func (p *parser) parseStmt() ast.Stmt {
 	}
 }
 
-func (p *parser) parseLetStmt() *ast.LetStmt {
+func (p *Parser) parseLetStmt() *ast.LetStmt {
 	stmt := &ast.LetStmt{
 		Tok: p.tok,
 	}
@@ -44,7 +44,7 @@ func (p *parser) parseLetStmt() *ast.LetStmt {
 	return stmt
 }
 
-func (p *parser) parseReturnStmt() *ast.ReturnStmt {
+func (p *Parser) parseReturnStmt() *ast.ReturnStmt {
 	stmt := &ast.ReturnStmt{
 		Tok: p.tok,
 	}
@@ -59,7 +59,7 @@ func (p *parser) parseReturnStmt() *ast.ReturnStmt {
 	return stmt
 }
 
-func (p *parser) parseExprStmt() *ast.ExprStmt {
+func (p *Parser) parseExprStmt() *ast.ExprStmt {
 	stmt := &ast.ExprStmt{
 		Expr: p.parseExpr(token.LOWEST),
 	}
@@ -71,7 +71,7 @@ func (p *parser) parseExprStmt() *ast.ExprStmt {
 	return stmt
 }
 
-func (p *parser) parseBlockStmt() *ast.BlockStmt {
+func (p *Parser) parseBlockStmt() *ast.BlockStmt {
 	block := &ast.BlockStmt{
 		Tok: p.tok,
 	}
